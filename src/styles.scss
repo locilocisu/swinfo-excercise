@@ -7,7 +7,17 @@
   font-display: swap;
   src:
     local('Aurebesh'),
-    url('https://fonts.cdnfonts.com/s/64479/Aurebesh.woff') format('woff');
+    url('/fonts/Aurebesh.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Star Jedi';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src:
+    local('Star Jedi'),
+    url('/fonts/Starjedi.ttf') format('truetype');
 }
 
 html {
