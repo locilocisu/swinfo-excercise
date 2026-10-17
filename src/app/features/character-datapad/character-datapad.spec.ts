@@ -236,6 +236,11 @@ describe('CharacterDatapad', () => {
     expect(el.textContent).toContain('X-wing');
     expect(el.textContent).toContain('Snowspeeder');
 
+    // Aurebesh representations next to character name, species name, and homeworld planet name
+    expect(el.querySelector('.character-aurebesh')?.textContent?.trim()).toBe('Luke Skywalker');
+    expect(el.querySelector('.species-aurebesh')?.textContent?.trim()).toBe('Human');
+    expect(el.querySelector('.planet-aurebesh')?.textContent?.trim()).toBe('Tatooine');
+
     // Films sorted by episode_id (Episode I first, then Episode IV)
     expect(component.sortedFilms().map((f) => f.episode_id)).toEqual([1, 4]);
     expect(component.appearsInFilm(mockFilms[0])).toBe(true); // Episode IV
@@ -253,8 +258,24 @@ describe('CharacterDatapad', () => {
 
     const el = fixture.nativeElement as HTMLElement;
     expect(el.textContent).toContain('Unspecified');
+    expect(el.querySelector('.species-aurebesh')).toBeNull();
     expect(el.textContent).toContain('No starships piloted by this character.');
     expect(el.textContent).toContain('No vehicles piloted by this character.');
+  });
+
+  it('should not show Aurebesh for homeworld planet name when the planet name is unknown', () => {
+    swapiServiceMock.getByUrl.mockReturnValueOnce(
+      of({
+        ...mockTatooine,
+        name: 'unknown',
+      }),
+    );
+
+    component.retrySelectedCharacterDetails();
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.planet-aurebesh')).toBeNull();
   });
 
   it('should communicate error state when character loading fails', () => {

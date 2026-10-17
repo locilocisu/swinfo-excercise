@@ -1,4 +1,4 @@
-import { EpisodeRomanPipe, SwapiMetricPipe } from './swapi-pipes';
+import { AurebeshTextPipe, EpisodeRomanPipe, SwapiMetricPipe } from './swapi-pipes';
 
 describe('SWAPI Pipes', () => {
   describe('SwapiMetricPipe', () => {
@@ -28,6 +28,18 @@ describe('SWAPI Pipes', () => {
       expect(pipe.transform(1)).toBe('Episode I');
       expect(pipe.transform(4)).toBe('Episode IV');
       expect(pipe.transform(6)).toBe('Episode VI');
+      expect(pipe.transform(null)).toBe('');
+    });
+  });
+
+  describe('AurebeshTextPipe', () => {
+    const pipe = new AurebeshTextPipe();
+
+    it('should strip accents and diacritics so letters map to standard Aurebesh glyphs', () => {
+      expect(pipe.transform('Padmé Amidala')).toBe('Padme Amidala');
+      expect(pipe.transform('Dormé')).toBe('Dorme');
+      expect(pipe.transform('Ric Olié')).toBe('Ric Olie');
+      expect(pipe.transform('Lama Su')).toBe('Lama Su');
       expect(pipe.transform(null)).toBe('');
     });
   });

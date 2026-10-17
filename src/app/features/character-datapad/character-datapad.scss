@@ -136,11 +136,36 @@
   }
 }
 
+.name-with-aurebesh {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.65rem;
+}
+
 .character-name {
   margin: 0;
   font-size: clamp(1.35rem, 1.15rem + 0.8vw, 1.75rem);
   font-weight: 700;
   color: var(--sw-gold, #ffe81f);
+}
+
+.aurebesh-text {
+  font-family: 'Aurebesh', sans-serif;
+  font-weight: 400;
+  color: var(--sw-cyan, #4cc9f0);
+  letter-spacing: 0.06em;
+  opacity: 0.85;
+  text-shadow: 0 0 10px rgba(76, 201, 240, 0.35);
+}
+
+.character-aurebesh {
+  font-size: clamp(0.95rem, 0.85rem + 0.4vw, 1.15rem);
+}
+
+.planet-aurebesh,
+.species-aurebesh {
+  font-size: 0.78rem;
 }
 
 .profile-card-content {

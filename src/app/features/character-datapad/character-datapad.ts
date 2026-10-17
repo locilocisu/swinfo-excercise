@@ -20,7 +20,11 @@ import {
   Starship,
   Vehicle,
 } from '../../core/models/swapi.models';
-import { EpisodeRomanPipe, SwapiMetricPipe } from '../../core/pipes/swapi-pipes';
+import {
+  AurebeshTextPipe,
+  EpisodeRomanPipe,
+  SwapiMetricPipe,
+} from '../../core/pipes/swapi-pipes';
 import { SwapiService } from '../../core/services/swapi.service';
 
 export interface CharacterAttributeRow {
@@ -45,6 +49,7 @@ export interface CharacterAttributeRow {
     MatProgressSpinnerModule,
     SwapiMetricPipe,
     EpisodeRomanPipe,
+    AurebeshTextPipe,
   ],
   templateUrl: './character-datapad.html',
   styleUrl: './character-datapad.scss',

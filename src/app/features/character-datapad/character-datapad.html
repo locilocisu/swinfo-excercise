@@ -86,7 +86,12 @@
                 <mat-icon fontSet="material-symbols-outlined">person</mat-icon>
               </div>
               <mat-card-title>
-                <h2 class="character-name">{{ character.name }}</h2>
+                <div class="name-with-aurebesh">
+                  <h2 class="character-name">{{ character.name }}</h2>
+                  <span class="aurebesh-text character-aurebesh" aria-hidden="true">
+                    {{ character.name | aurebeshText }}
+                  </span>
+                </div>
               </mat-card-title>
             </mat-card-header>
 
@@ -154,7 +159,7 @@
                       </mat-card-header>
                       <mat-divider />
                       <mat-card-content class="subcard-body empty-note">
-                        No species record is linked to this character in SWAPI.
+                        No species record is linked to this character.
                       </mat-card-content>
                     } @else {
                       @for (sp of speciesList(); track sp.url; let first = $first) {
@@ -162,7 +167,17 @@
                           <mat-divider />
                         }
                         <mat-card-header class="subcard-header">
-                          <mat-card-title class="subcard-title">{{ sp.name }}</mat-card-title>
+                          <mat-card-title class="subcard-title name-with-aurebesh">
+                            <span>{{ sp.name }}</span>
+                            @if (
+                              sp.name.toLowerCase() !== 'unspecified' &&
+                              sp.name.toLowerCase() !== 'unknown'
+                            ) {
+                              <span class="aurebesh-text species-aurebesh" aria-hidden="true">
+                                {{ sp.name | aurebeshText }}
+                              </span>
+                            }
+                          </mat-card-title>
                         </mat-card-header>
                         <mat-divider />
                         <mat-card-content class="subcard-body">
@@ -221,7 +236,14 @@
                       </div>
                     } @else if (homeworld(); as planet) {
                       <mat-card-header class="subcard-header">
-                        <mat-card-title class="subcard-title">{{ planet.name }}</mat-card-title>
+                        <mat-card-title class="subcard-title name-with-aurebesh">
+                          <span>{{ planet.name }}</span>
+                          @if (planet.name.toLowerCase() !== 'unknown') {
+                            <span class="aurebesh-text planet-aurebesh" aria-hidden="true">
+                              {{ planet.name | aurebeshText }}
+                            </span>
+                          }
+                        </mat-card-title>
                       </mat-card-header>
                       <mat-divider />
                       <mat-card-content class="subcard-body">

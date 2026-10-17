@@ -1,5 +1,15 @@
 @use '@angular/material' as mat;
 
+@font-face {
+  font-family: 'Aurebesh';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src:
+    local('Aurebesh'),
+    url('https://fonts.cdnfonts.com/s/64479/Aurebesh.woff') format('woff');
+}
+
 html {
   height: 100%;
   @include mat.theme(
