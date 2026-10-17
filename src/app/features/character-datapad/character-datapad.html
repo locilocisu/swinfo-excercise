@@ -1,0 +1,427 @@
+<div class="datapad-page">
+  <header class="datapad-header">
+    <h1 class="datapad-title">Star Wars Character Datapad</h1>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="search-field">
+      <mat-icon matPrefix fontSet="material-symbols-outlined" aria-hidden="true">search</mat-icon>
+      <input
+        matInput
+        type="search"
+        aria-label="Search characters"
+        placeholder="Search characters"
+        [value]="searchQuery()"
+        (input)="updateSearch($any($event.target).value)"
+      />
+      @if (searchQuery()) {
+        <button
+          matIconButton
+          matSuffix
+          type="button"
+          aria-label="Clear character search"
+          (click)="updateSearch('')"
+        >
+          <mat-icon fontSet="material-symbols-outlined">close</mat-icon>
+        </button>
+      }
+    </mat-form-field>
+  </header>
+
+  <main class="datapad-content">
+    <!-- Top Section: Characters Sidebar + Character Profile -->
+    <div class="top-layout">
+      <section class="characters-section" aria-labelledby="characters-heading">
+        <h2 id="characters-heading" class="section-heading">CHARACTERS</h2>
+
+        <mat-card appearance="outlined" class="characters-list-card">
+          @if (charactersLoading()) {
+            <div class="state-box" role="status" aria-live="polite">
+              <mat-spinner diameter="32"></mat-spinner>
+              <span>Loading characters...</span>
+            </div>
+          } @else if (charactersError(); as errorMsg) {
+            <div class="state-box error-state" role="alert">
+              <p>{{ errorMsg }}</p>
+              <button matButton="outlined" type="button" (click)="loadCharacters()">Retry</button>
+            </div>
+          } @else if (filteredCharacters().length === 0) {
+            <div class="state-box empty-state" role="status" aria-live="polite">
+              <p>No characters match "{{ searchQuery() }}".</p>
+              @if (searchQuery()) {
+                <button matButton="text" type="button" (click)="updateSearch('')">
+                  Clear search
+                </button>
+              }
+            </div>
+          } @else {
+            <nav aria-label="Star Wars characters" class="character-list-scroll">
+              <ul class="character-list" role="listbox" aria-labelledby="characters-heading">
+                @for (person of filteredCharacters(); track person.url) {
+                  <li role="presentation">
+                    <button
+                      type="button"
+                      role="option"
+                      class="character-item-btn"
+                      [class.selected]="selectedCharacterUrl() === person.url"
+                      [attr.aria-selected]="selectedCharacterUrl() === person.url"
+                      (click)="selectCharacter(person)"
+                    >
+                      {{ person.name }}
+                    </button>
+                  </li>
+                }
+              </ul>
+            </nav>
+          }
+        </mat-card>
+      </section>
+
+      <section class="profile-section" aria-label="Selected character details">
+        <mat-card appearance="outlined" class="profile-card">
+          @if (charactersLoading()) {
+            <div class="state-box" role="status" aria-live="polite">
+              <mat-spinner diameter="40"></mat-spinner>
+              <span>Loading character datapad...</span>
+            </div>
+          } @else if (selectedCharacter(); as character) {
+            <div class="character-banner">
+              <div class="avatar-placeholder" aria-hidden="true">
+                <svg viewBox="0 0 64 64" focusable="false">
+                  <circle cx="32" cy="22" r="11" />
+                  <path d="M14 54c0-10 8-18 18-18s18 8 18 18H14z" />
+                </svg>
+              </div>
+              <h2 class="character-name">{{ character.name }}</h2>
+            </div>
+
+            <div class="profile-panels-grid">
+              <!-- ATTRIBUTES -->
+              <div class="subpanel">
+                <h3 class="subpanel-heading">ATTRIBUTES</h3>
+                <div class="attributes-table" role="region" aria-label="Character attributes">
+                  <div class="attr-row">
+                    <span class="attr-label">Birth year</span>
+                    <span class="attr-value">{{ character.birth_year }}</span>
+                  </div>
+                  <div class="attr-row">
+                    <span class="attr-label">Gender</span>
+                    <span class="attr-value">{{ character.gender }}</span>
+                  </div>
+                  <div class="attr-row">
+                    <span class="attr-label">Height</span>
+                    <span class="attr-value">{{ formatMetric(character.height, 'cm') }}</span>
+                  </div>
+                  <div class="attr-row">
+                    <span class="attr-label">Mass</span>
+                    <span class="attr-value">{{ formatMetric(character.mass, 'kg') }}</span>
+                  </div>
+                  <div class="attr-row">
+                    <span class="attr-label">Eye color</span>
+                    <span class="attr-value">{{ character.eye_color }}</span>
+                  </div>
+                  <div class="attr-row">
+                    <span class="attr-label">Hair color</span>
+                    <span class="attr-value">{{ character.hair_color }}</span>
+                  </div>
+                  <div class="attr-row">
+                    <span class="attr-label">Skin color</span>
+                    <span class="attr-value">{{ character.skin_color }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- SPECIES -->
+              <div class="subpanel">
+                <h3 class="subpanel-heading">SPECIES</h3>
+                <div class="detail-box" role="region" aria-label="Character species">
+                  @if (speciesLoading()) {
+                    <div class="inline-state" role="status" aria-live="polite">
+                      <mat-spinner diameter="24"></mat-spinner>
+                      <span>Loading species...</span>
+                    </div>
+                  } @else if (speciesError(); as err) {
+                    <div class="inline-state error-state" role="alert">
+                      <span>{{ err }}</span>
+                      <button
+                        matButton="outlined"
+                        type="button"
+                        (click)="retrySelectedCharacterDetails()"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  } @else if (speciesList().length === 0) {
+                    <div class="detail-box-header">Unspecified</div>
+                    <div class="detail-box-body empty-note">
+                      No species record is linked to this character in SWAPI.
+                    </div>
+                  } @else {
+                    @for (sp of speciesList(); track sp.url) {
+                      <div class="species-entry">
+                        <div class="detail-box-header">{{ sp.name }}</div>
+                        <dl class="kv-list">
+                          <div class="kv-row">
+                            <dt>Classification:</dt>
+                            <dd>{{ sp.classification }}</dd>
+                          </div>
+                          <div class="kv-row">
+                            <dt>Designation:</dt>
+                            <dd>{{ sp.designation }}</dd>
+                          </div>
+                          <div class="kv-row">
+                            <dt>Average height:</dt>
+                            <dd>{{ formatMetric(sp.average_height, 'cm') }}</dd>
+                          </div>
+                          <div class="kv-row">
+                            <dt>Average lifespan:</dt>
+                            <dd>{{ formatMetric(sp.average_lifespan, 'yr') }}</dd>
+                          </div>
+                          <div class="kv-row">
+                            <dt>Language:</dt>
+                            <dd>{{ sp.language }}</dd>
+                          </div>
+                        </dl>
+                      </div>
+                    }
+                  }
+                </div>
+              </div>
+
+              <!-- HOMEWORLD -->
+              <div class="subpanel">
+                <h3 class="subpanel-heading">HOMEWORLD</h3>
+                <div class="detail-box" role="region" aria-label="Character homeworld">
+                  @if (homeworldLoading()) {
+                    <div class="inline-state" role="status" aria-live="polite">
+                      <mat-spinner diameter="24"></mat-spinner>
+                      <span>Loading homeworld...</span>
+                    </div>
+                  } @else if (homeworldError(); as err) {
+                    <div class="inline-state error-state" role="alert">
+                      <span>{{ err }}</span>
+                      <button
+                        matButton="outlined"
+                        type="button"
+                        (click)="retrySelectedCharacterDetails()"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  } @else if (homeworld(); as planet) {
+                    <div class="detail-box-header">{{ planet.name }}</div>
+                    <dl class="kv-list">
+                      <div class="kv-row">
+                        <dt>Population:</dt>
+                        <dd>{{ formatMetric(planet.population, '', true) }}</dd>
+                      </div>
+                      <div class="kv-row">
+                        <dt>Terrain:</dt>
+                        <dd>{{ planet.terrain }}</dd>
+                      </div>
+                      <div class="kv-row">
+                        <dt>Climate:</dt>
+                        <dd>{{ planet.climate }}</dd>
+                      </div>
+                      <div class="kv-row">
+                        <dt>Surface water:</dt>
+                        <dd>{{ formatMetric(planet.surface_water, '%') }}</dd>
+                      </div>
+                      <div class="kv-row">
+                        <dt>Diameter:</dt>
+                        <dd>{{ formatMetric(planet.diameter, 'km', true) }}</dd>
+                      </div>
+                      <div class="kv-row">
+                        <dt>Rotation period:</dt>
+                        <dd>{{ formatMetric(planet.rotation_period, 'hr') }}</dd>
+                      </div>
+                      <div class="kv-row">
+                        <dt>Orbital period:</dt>
+                        <dd>{{ formatMetric(planet.orbital_period, 'd') }}</dd>
+                      </div>
+                      <div class="kv-row">
+                        <dt>Gravity:</dt>
+                        <dd>{{ planet.gravity }}</dd>
+                      </div>
+                    </dl>
+                  } @else {
+                    <div class="detail-box-header">Unknown</div>
+                    <div class="detail-box-body empty-note">No homeworld data available.</div>
+                  }
+                </div>
+              </div>
+            </div>
+          } @else {
+            <div class="state-box empty-state" role="status">
+              <p>Select a character from the list to inspect their datapad profile.</p>
+            </div>
+          }
+        </mat-card>
+      </section>
+    </div>
+
+    <!-- Middle Section: FILMS -->
+    <section class="films-section" aria-labelledby="films-heading">
+      <h2 id="films-heading" class="section-heading">FILMS</h2>
+
+      <mat-card appearance="outlined" class="films-card">
+        @if (filmsLoading()) {
+          <div class="inline-state" role="status" aria-live="polite">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Loading films...</span>
+          </div>
+        } @else if (filmsError(); as err) {
+          <div class="inline-state error-state" role="alert">
+            <span>{{ err }}</span>
+            <button matButton="outlined" type="button" (click)="loadFilms()">Retry</button>
+          </div>
+        } @else if (sortedFilms().length === 0) {
+          <div class="inline-state empty-state" role="status">No films available.</div>
+        } @else {
+          <ul class="films-grid" aria-label="Star Wars film appearances">
+            @for (film of sortedFilms(); track film.url) {
+              @let active = appearsInFilm(film);
+              <li
+                class="film-tile"
+                [class.film-active]="active"
+                [class.film-inactive]="!active"
+                [attr.aria-label]="
+                  film.title +
+                  ' (' +
+                  formatEpisodeRoman(film.episode_id) +
+                  ') - ' +
+                  (active ? 'Appears in film' : 'Does not appear in film')
+                "
+              >
+                <div class="film-poster-placeholder" aria-hidden="true">
+                  <svg viewBox="0 0 64 52" focusable="false">
+                    <rect x="3" y="3" width="58" height="46" rx="4" />
+                    <circle cx="22" cy="20" r="5" />
+                    <path d="M8 44l15-15 10 10 11-13 12 18H8z" />
+                  </svg>
+                </div>
+                <div class="film-title">{{ film.title }}</div>
+                <div class="film-episode">{{ formatEpisodeRoman(film.episode_id) }}</div>
+              </li>
+            }
+          </ul>
+        }
+      </mat-card>
+    </section>
+
+    <!-- Bottom Section: STARSHIPS & VEHICLES -->
+    <div class="bottom-layout">
+      <section class="craft-section" aria-labelledby="starships-heading">
+        <h2 id="starships-heading" class="section-heading">STARSHIPS</h2>
+
+        <mat-card appearance="outlined" class="craft-card">
+          @if (starshipsLoading()) {
+            <div class="inline-state" role="status" aria-live="polite">
+              <mat-spinner diameter="28"></mat-spinner>
+              <span>Loading starships...</span>
+            </div>
+          } @else if (starshipsError(); as err) {
+            <div class="inline-state error-state" role="alert">
+              <span>{{ err }}</span>
+              <button
+                matButton="outlined"
+                type="button"
+                (click)="retrySelectedCharacterDetails()"
+              >
+                Retry
+              </button>
+            </div>
+          } @else if (starshipsList().length === 0) {
+            <div class="inline-state empty-state" role="status">
+              No starships piloted by this character.
+            </div>
+          } @else {
+            <ul class="craft-list" aria-labelledby="starships-heading">
+              @for (ship of starshipsList(); track ship.url) {
+                <li class="craft-item">
+                  <div class="craft-image-placeholder" aria-hidden="true">
+                    <svg viewBox="0 0 64 64" focusable="false">
+                      <rect x="1" y="1" width="62" height="62" />
+                      <line x1="1" y1="1" x2="63" y2="63" />
+                      <line x1="63" y1="1" x2="1" y2="63" />
+                    </svg>
+                  </div>
+                  <div class="craft-details">
+                    <div class="craft-row craft-header-row">
+                      <span class="craft-name">{{ ship.name }}</span>
+                      <span class="craft-class">{{ ship.starship_class }}</span>
+                    </div>
+                    <div class="craft-row">
+                      <span class="craft-label">Crew / Passengers:</span>
+                      <span class="craft-value">{{ ship.crew }} / {{ ship.passengers }}</span>
+                    </div>
+                    <div class="craft-row">
+                      <span class="craft-label">Model / Manufacturer:</span>
+                      <span class="craft-value">{{ ship.model }} / {{ ship.manufacturer }}</span>
+                    </div>
+                  </div>
+                </li>
+              }
+            </ul>
+          }
+        </mat-card>
+      </section>
+
+      <section class="craft-section" aria-labelledby="vehicles-heading">
+        <h2 id="vehicles-heading" class="section-heading">VEHICLES</h2>
+
+        <mat-card appearance="outlined" class="craft-card">
+          @if (vehiclesLoading()) {
+            <div class="inline-state" role="status" aria-live="polite">
+              <mat-spinner diameter="28"></mat-spinner>
+              <span>Loading vehicles...</span>
+            </div>
+          } @else if (vehiclesError(); as err) {
+            <div class="inline-state error-state" role="alert">
+              <span>{{ err }}</span>
+              <button
+                matButton="outlined"
+                type="button"
+                (click)="retrySelectedCharacterDetails()"
+              >
+                Retry
+              </button>
+            </div>
+          } @else if (vehiclesList().length === 0) {
+            <div class="inline-state empty-state" role="status">
+              No vehicles piloted by this character.
+            </div>
+          } @else {
+            <ul class="craft-list" aria-labelledby="vehicles-heading">
+              @for (vehicle of vehiclesList(); track vehicle.url) {
+                <li class="craft-item">
+                  <div class="craft-image-placeholder" aria-hidden="true">
+                    <svg viewBox="0 0 64 64" focusable="false">
+                      <rect x="1" y="1" width="62" height="62" />
+                      <line x1="1" y1="1" x2="63" y2="63" />
+                      <line x1="63" y1="1" x2="1" y2="63" />
+                    </svg>
+                  </div>
+                  <div class="craft-details">
+                    <div class="craft-row craft-header-row">
+                      <span class="craft-name">{{ vehicle.name }}</span>
+                      <span class="craft-class">{{ vehicle.vehicle_class }}</span>
+                    </div>
+                    <div class="craft-row">
+                      <span class="craft-label">Crew / Passengers:</span>
+                      <span class="craft-value">{{ vehicle.crew }} / {{ vehicle.passengers }}</span>
+                    </div>
+                    <div class="craft-row">
+                      <span class="craft-label">Model / Manufacturer:</span>
+                      <span class="craft-value"
+                        >{{ vehicle.model }} / {{ vehicle.manufacturer }}</span
+                      >
+                    </div>
+                  </div>
+                </li>
+              }
+            </ul>
+          }
+        </mat-card>
+      </section>
+    </div>
+  </main>
+</div>
