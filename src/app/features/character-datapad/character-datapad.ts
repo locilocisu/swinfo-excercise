@@ -16,8 +16,8 @@ import {
   Starship,
   Vehicle,
 } from '../../core/models/swapi.models';
+import { EpisodeRomanPipe, SwapiMetricPipe } from '../../core/pipes/swapi-pipes';
 import { SwapiService } from '../../core/services/swapi.service';
-import { formatEpisodeRoman, formatMetric } from '../../core/utils/formatters';
 
 @Component({
   selector: 'app-character-datapad',
@@ -29,6 +29,8 @@ import { formatEpisodeRoman, formatMetric } from '../../core/utils/formatters';
     MatIconModule,
     MatListModule,
     MatProgressSpinnerModule,
+    SwapiMetricPipe,
+    EpisodeRomanPipe,
   ],
   templateUrl: './character-datapad.html',
   styleUrl: './character-datapad.scss',
@@ -37,9 +39,6 @@ export class CharacterDatapad implements OnInit {
   private readonly swapiService = inject(SwapiService);
   private readonly destroyRef = inject(DestroyRef);
   private detailsSubscription = new Subscription();
-
-  readonly formatMetric = formatMetric;
-  readonly formatEpisodeRoman = formatEpisodeRoman;
 
   // Characters list state
   readonly characters = signal<Person[]>([]);

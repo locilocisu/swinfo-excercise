@@ -42,7 +42,7 @@ npx ng test --watch=false
 
 1. **`swapi.info` Unpaginated Array Responses**: Unlike the older `swapi.dev` endpoint (which returned paginated `{ count, next, previous, results }` envelopes), `https://swapi.info/api/*` returns full JSON arrays directly (e.g., all 82 characters at `/api/people` and all 6 films at `/api/films`). Because all 82 characters are returned in a single lightweight payload, client-side sorting and search filtering provide instant, zero-latency feedback.
 2. **Missing Species Records in SWAPI Dataset**: In the canonical SWAPI dataset (`https://swapi.info/api/people/1`), several characters—including Luke Skywalker, Leia Organa, Han Solo, and Darth Vader—have an empty `"species": []` array, whereas characters like C-3PO (`/api/species/2`), Chewbacca (`/api/species/3`), and Dormé (`/api/species/1`) have explicit species links. Rather than hardcoding `"Human"` whenever `species` is empty (which would misclassify non-human characters with missing species links), the UI explicitly communicates `"Unspecified"` when `person.species` is empty and renders the full species profile whenever one or more species URLs are linked.
-3. **Non-Numeric Attribute Values**: SWAPI frequently returns string placeholders such as `"unknown"`, `"n/a"`, `"none"`, or `"indefinite"` for numeric fields (`height`, `mass`, `population`, `diameter`, `surface_water`). The formatting utility (`formatMetric`) detects these values so units (`cm`, `kg`, `km`, `%`) and thousands separators are only applied to valid numbers.
+3. **Non-Numeric Attribute Values**: SWAPI frequently returns string placeholders such as `"unknown"`, `"n/a"`, `"none"`, or `"indefinite"` for numeric fields (`height`, `mass`, `population`, `diameter`, `surface_water`). The `SwapiMetricPipe` (`swapiMetric`) detects these values so units (`cm`, `kg`, `km`, `%`) and thousands separators are only applied to valid numbers.
 4. **Films Timeline Bar**: Following the wireframe mockup, all 6 Star Wars films are displayed in chronological episode order (`Episode I` through `Episode VI`), visually highlighting the films in which the selected character appears and dimming the others (with accessible `aria-label` descriptions for screen readers).
 
 ---
@@ -53,7 +53,7 @@ The application is structured around clear domain boundaries:
 
 - **`src/app/core/models/swapi.models.ts`**: Strictly typed TypeScript interfaces for all SWAPI resources (`Person`, `Film`, `Planet`, `Species`, `Starship`, `Vehicle`, `SwapiRoot`).
 - **`src/app/core/services/swapi.service.ts`**: Singleton data-access service encapsulating all HTTP communication with `https://swapi.info/api`, including typed category endpoints and URL-based entity resolution (`getByUrl`, `getManyByUrls`) with in-memory `shareReplay(1)` caching.
-- **`src/app/core/utils/formatters.ts`**: Pure formatting functions for metric units, thousands separators, and Roman numeral episode labels.
+- **`src/app/core/pipes/swapi-pipes.ts`**: Pure standalone Angular pipes (`SwapiMetricPipe` and `EpisodeRomanPipe`) for formatting metric units, thousands separators, and Roman numeral episode labels.
 - **`src/app/features/character-datapad/`**: Lazy-loaded standalone component implementing the single-page Character Datapad layout using Angular Signals (`signal`, `computed`, `effect`) and Angular Material components.
 
 ---
@@ -93,7 +93,7 @@ The application is structured around clear domain boundaries:
 
 AI-assisted tooling was used to accelerate project scaffolding, inspect the `https://swapi.info/api` response schemas, generate initial TypeScript interfaces and unit test scaffolding, and align the CSS Grid/Container Query layout with the provided wireframe. All generated code was reviewed and validated by:
 - Inspecting live responses from `https://swapi.info/api` to verify field types and edge cases (such as empty `species` arrays and `"unknown"`/`"n/a"` string metrics).
-- Running automated unit tests (`ng test --watch=false`) covering `SwapiService`, `formatters`, and `CharacterDatapad` state transitions (loading, search filtering, empty states, and error recovery).
+- **Testing**: Running automated unit tests (`ng test --watch=false`) covering `SwapiService`, `SwapiMetricPipe`/`EpisodeRomanPipe`, and `CharacterDatapad` state transitions (loading, search filtering, empty states, and error recovery).
 - Verifying production compilation (`npm run build`) with strict TypeScript checking enabled.
 
 ---
@@ -101,5 +101,5 @@ AI-assisted tooling was used to accelerate project scaffolding, inspect the `htt
 ## Guidance for Maintaining & Extending the Application
 
 - **Adding New SWAPI Categories or Fields**: Extend the interfaces in `src/app/core/models/swapi.models.ts` and use `SwapiService.getByUrl<T>()` or `getManyByUrls<T>()` to resolve linked URLs with automatic caching.
-- **Formatting API Values**: Always pass raw numeric strings from SWAPI through `formatMetric()` in `src/app/core/utils/formatters.ts` rather than interpolating units directly in templates, as SWAPI frequently returns `"unknown"` or `"n/a"`.
+- **Formatting API Values**: Always pass raw numeric strings from SWAPI through the `swapiMetric` pipe (`src/app/core/pipes/swapi-pipes.ts`) rather than interpolating units directly in templates, as SWAPI frequently returns `"unknown"` or `"n/a"`.
 - **Testing Changes**: Add corresponding test cases in `*.spec.ts` using `HttpTestingController` for service tests and mocked `SwapiService` observables for component behavior tests.
