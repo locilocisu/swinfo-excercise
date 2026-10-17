@@ -2,11 +2,15 @@ import { Component, computed, DestroyRef, effect, inject, OnInit, signal } from 
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatDividerModule } from '@angular/material/divider';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTableModule } from '@angular/material/table';
+import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { Subscription } from 'rxjs';
 import {
   Film,
@@ -19,15 +23,25 @@ import {
 import { EpisodeRomanPipe, SwapiMetricPipe } from '../../core/pipes/swapi-pipes';
 import { SwapiService } from '../../core/services/swapi.service';
 
+export interface CharacterAttributeRow {
+  label: string;
+  value: string;
+  unit?: string;
+}
+
 @Component({
   selector: 'app-character-datapad',
   imports: [
+    MatToolbarModule,
     MatCardModule,
     MatButtonModule,
+    MatDividerModule,
     MatFormFieldModule,
     MatInputModule,
     MatIconModule,
     MatListModule,
+    MatTableModule,
+    MatTooltipModule,
     MatProgressSpinnerModule,
     SwapiMetricPipe,
     EpisodeRomanPipe,
@@ -39,6 +53,8 @@ export class CharacterDatapad implements OnInit {
   private readonly swapiService = inject(SwapiService);
   private readonly destroyRef = inject(DestroyRef);
   private detailsSubscription = new Subscription();
+
+  readonly attributeColumns: readonly string[] = ['label', 'value'];
 
   // Characters list state
   readonly characters = signal<Person[]>([]);
@@ -88,6 +104,22 @@ export class CharacterDatapad implements OnInit {
       return null;
     }
     return this.characters().find((person) => person.url === url) ?? null;
+  });
+
+  readonly attributeRows = computed<CharacterAttributeRow[]>(() => {
+    const character = this.selectedCharacter();
+    if (!character) {
+      return [];
+    }
+    return [
+      { label: 'Birth year', value: character.birth_year },
+      { label: 'Gender', value: character.gender },
+      { label: 'Height', value: character.height, unit: 'cm' },
+      { label: 'Mass', value: character.mass, unit: 'kg' },
+      { label: 'Eye color', value: character.eye_color },
+      { label: 'Hair color', value: character.hair_color },
+      { label: 'Skin color', value: character.skin_color },
+    ];
   });
 
   readonly sortedFilms = computed<Film[]>(() =>
