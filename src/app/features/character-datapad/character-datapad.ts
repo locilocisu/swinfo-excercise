@@ -243,14 +243,12 @@ export class CharacterDatapad implements OnInit {
 
   private loadSpeciesForCharacter(character: Person): void {
     this.speciesError.set(null);
-    if (!character.species.length) {
-      this.speciesList.set([]);
-      this.speciesLoading.set(false);
-      return;
-    }
+    const speciesUrls = character.species.length
+      ? character.species
+      : [`${this.swapiService.baseUrl}/species/1`];
 
     this.speciesLoading.set(true);
-    const sub = this.swapiService.getManyByUrls<Species>(character.species).subscribe({
+    const sub = this.swapiService.getManyByUrls<Species>(speciesUrls).subscribe({
       next: (species) => {
         this.speciesList.set(species);
         this.speciesLoading.set(false);

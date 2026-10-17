@@ -15,6 +15,7 @@ describe('CharacterDatapad', () => {
   let fixture: ComponentFixture<CharacterDatapad>;
   let component: CharacterDatapad;
   let swapiServiceMock: {
+    baseUrl: string;
     getPeople: ReturnType<typeof vi.fn>;
     getFilms: ReturnType<typeof vi.fn>;
     getByUrl: ReturnType<typeof vi.fn>;
@@ -173,6 +174,7 @@ describe('CharacterDatapad', () => {
 
   beforeEach(async () => {
     swapiServiceMock = {
+      baseUrl,
       getPeople: vi.fn().mockReturnValue(of([mockLuke, mockC3po])),
       getFilms: vi.fn().mockReturnValue(of(mockFilms)),
       getByUrl: vi.fn().mockReturnValue(of(mockTatooine)),
@@ -247,18 +249,20 @@ describe('CharacterDatapad', () => {
     expect(component.appearsInFilm(mockFilms[1])).toBe(false); // Episode I
   });
 
-  it('should switch selected character and show empty states when related arrays are empty', () => {
+  it('should treat a character with an empty species array as Human (species/1) and show empty states for starships/vehicles', () => {
+    swapiServiceMock.getManyByUrls.mockClear();
     component.selectCharacter(mockC3po);
     fixture.detectChanges();
 
     expect(component.selectedCharacter()?.name).toBe('C-3PO');
-    expect(component.speciesList()).toEqual([]);
+    expect(swapiServiceMock.getManyByUrls).toHaveBeenCalledWith([`${baseUrl}/species/1`]);
+    expect(component.speciesList()).toEqual([mockHuman]);
     expect(component.starshipsList()).toEqual([]);
     expect(component.vehiclesList()).toEqual([]);
 
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.textContent).toContain('Unspecified');
-    expect(el.querySelector('.species-aurebesh')).toBeNull();
+    expect(el.textContent).toContain('Human');
+    expect(el.querySelector('.species-aurebesh')?.textContent?.trim()).toBe('Human');
     expect(el.textContent).toContain('No starships piloted by this character.');
     expect(el.textContent).toContain('No vehicles piloted by this character.');
   });
