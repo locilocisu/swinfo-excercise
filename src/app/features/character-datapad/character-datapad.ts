@@ -13,9 +13,8 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { forkJoin, Subscription } from 'rxjs';
 import {
-  extractSwapiId,
+  Character,
   Film,
-  Person,
   Planet,
   Species,
   Starship,
@@ -63,7 +62,7 @@ export class CharacterDatapad implements OnInit {
   readonly attributeColumns: readonly string[] = ['label', 'value'];
 
   // Characters list state
-  readonly characters = signal<Person[]>([]);
+  readonly characters = signal<Character[]>([]);
   readonly charactersLoading = signal<boolean>(true);
   readonly charactersError = signal<string | null>(null);
   readonly searchQuery = signal<string>('');
@@ -91,11 +90,11 @@ export class CharacterDatapad implements OnInit {
   readonly vehiclesLoading = signal<boolean>(false);
   readonly vehiclesError = signal<string | null>(null);
 
-  readonly sortedCharacters = computed<Person[]>(() =>
+  readonly sortedCharacters = computed<Character[]>(() =>
     [...this.characters()].sort((a, b) => a.name.localeCompare(b.name)),
   );
 
-  readonly filteredCharacters = computed<Person[]>(() => {
+  readonly filteredCharacters = computed<Character[]>(() => {
     const query = this.searchQuery().trim().toLowerCase();
     const list = this.sortedCharacters();
     if (!query) {
@@ -104,7 +103,7 @@ export class CharacterDatapad implements OnInit {
     return list.filter((person) => person.name.toLowerCase().includes(query));
   });
 
-  readonly selectedCharacter = computed<Person | null>(() => {
+  readonly selectedCharacter = computed<Character | null>(() => {
     const url = this.selectedCharacterUrl();
     if (!url) {
       return null;
@@ -132,7 +131,7 @@ export class CharacterDatapad implements OnInit {
     [...this.allFilms()].sort((a, b) => a.episode_id - b.episode_id),
   );
 
-  private readonly characterFilmUrlSet = computed<ReadonlySet<string>>(
+  private readonly characterFilmIdSet = computed<ReadonlySet<string>>(
     () => new Set(this.selectedCharacter()?.films ?? []),
   );
 
@@ -165,10 +164,10 @@ export class CharacterDatapad implements OnInit {
           this.charactersLoading.set(false);
 
           if (!this.selectedCharacterUrl() && people.length > 0) {
-            const defaultPerson =
+            const defaultCharacter =
               people.find((p) => p.name.toLowerCase() === 'luke skywalker') ??
               [...people].sort((a, b) => a.name.localeCompare(b.name))[0];
-            this.selectedCharacterUrl.set(defaultPerson.url);
+            this.selectedCharacterUrl.set(defaultCharacter.url);
           }
         },
         error: () => {
@@ -197,7 +196,7 @@ export class CharacterDatapad implements OnInit {
       });
   }
 
-  selectCharacter(person: Person): void {
+  selectCharacter(person: Character): void {
     this.selectedCharacterUrl.set(person.url);
   }
 
@@ -206,14 +205,14 @@ export class CharacterDatapad implements OnInit {
   }
 
   appearsInFilm(film: Film): boolean {
-    return this.characterFilmUrlSet().has(film.url);
+    return this.characterFilmIdSet().has(film.id);
   }
 
   retrySelectedCharacterDetails(): void {
     this.loadCharacterRelatedData(this.selectedCharacter());
   }
 
-  private loadCharacterRelatedData(character: Person | null): void {
+  private loadCharacterRelatedData(character: Character | null): void {
     this.detailsSubscription.unsubscribe();
     this.detailsSubscription = new Subscription();
 
@@ -242,10 +241,10 @@ export class CharacterDatapad implements OnInit {
     this.loadVehiclesForCharacter(character);
   }
 
-  private loadSpeciesForCharacter(character: Person): void {
+  private loadSpeciesForCharacter(character: Character): void {
     this.speciesError.set(null);
     const speciesIds = character.species.length
-      ? character.species.map((url) => extractSwapiId(url))
+      ? character.species
       : ['1']; //if the character has no species, default to "Human" (species ID 1)
 
     this.speciesLoading.set(true);
@@ -265,7 +264,7 @@ export class CharacterDatapad implements OnInit {
     this.detailsSubscription.add(sub);
   }
 
-  private loadHomeworldForCharacter(character: Person): void {
+  private loadHomeworldForCharacter(character: Character): void {
     this.homeworldError.set(null);
     if (!character.homeworld) {
       this.homeworld.set(null);
@@ -273,9 +272,8 @@ export class CharacterDatapad implements OnInit {
       return;
     }
 
-    const planetId = extractSwapiId(character.homeworld);
     this.homeworldLoading.set(true);
-    const sub = this.swapiService.getCategoryItem('planets', planetId).subscribe({
+    const sub = this.swapiService.getCategoryItem('planets', character.homeworld).subscribe({
       next: (planet) => {
         this.homeworld.set(planet);
         this.homeworldLoading.set(false);
@@ -289,7 +287,7 @@ export class CharacterDatapad implements OnInit {
     this.detailsSubscription.add(sub);
   }
 
-  private loadStarshipsForCharacter(character: Person): void {
+  private loadStarshipsForCharacter(character: Character): void {
     this.starshipsError.set(null);
     if (!character.starships.length) {
       this.starshipsList.set([]);
@@ -299,9 +297,7 @@ export class CharacterDatapad implements OnInit {
 
     this.starshipsLoading.set(true);
     const sub = forkJoin(
-      character.starships.map((url) =>
-        this.swapiService.getCategoryItem('starships', extractSwapiId(url)),
-      ),
+      character.starships.map((id) => this.swapiService.getCategoryItem('starships', id)),
     ).subscribe({
       next: (starships) => {
         this.starshipsList.set(starships);
@@ -316,7 +312,7 @@ export class CharacterDatapad implements OnInit {
     this.detailsSubscription.add(sub);
   }
 
-  private loadVehiclesForCharacter(character: Person): void {
+  private loadVehiclesForCharacter(character: Character): void {
     this.vehiclesError.set(null);
     if (!character.vehicles.length) {
       this.vehiclesList.set([]);
@@ -326,9 +322,7 @@ export class CharacterDatapad implements OnInit {
 
     this.vehiclesLoading.set(true);
     const sub = forkJoin(
-      character.vehicles.map((url) =>
-        this.swapiService.getCategoryItem('vehicles', extractSwapiId(url)),
-      ),
+      character.vehicles.map((id) => this.swapiService.getCategoryItem('vehicles', id)),
     ).subscribe({
       next: (vehicles) => {
         this.vehiclesList.set(vehicles);

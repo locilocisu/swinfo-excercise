@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import {
   Film,
-  Person,
+  Character,
   Planet,
   Species,
   Starship,
@@ -22,7 +22,8 @@ describe('CharacterDatapad', () => {
 
   const baseUrl = 'https://swapi.info/api';
 
-  const mockLuke: Person = {
+  const mockLuke: Character = {
+    id: '1',
     name: 'Luke Skywalker',
     height: '172',
     mass: '77',
@@ -31,17 +32,18 @@ describe('CharacterDatapad', () => {
     eye_color: 'blue',
     birth_year: '19BBY',
     gender: 'male',
-    homeworld: `${baseUrl}/planets/1`,
-    films: [`${baseUrl}/films/1`],
-    species: [`${baseUrl}/species/1`],
-    vehicles: [`${baseUrl}/vehicles/14`],
-    starships: [`${baseUrl}/starships/12`],
+    homeworld: '1',
+    films: ['1'],
+    species: ['1'],
+    vehicles: ['14'],
+    starships: ['12'],
     created: '2014-12-09T13:50:51.644000Z',
     edited: '2014-12-20T21:17:56.891000Z',
     url: `${baseUrl}/people/1`,
   };
 
-  const mockC3po: Person = {
+  const mockC3po: Character = {
+    id: '2',
     name: 'C-3PO',
     height: '167',
     mass: '75',
@@ -50,8 +52,8 @@ describe('CharacterDatapad', () => {
     eye_color: 'yellow',
     birth_year: '112BBY',
     gender: 'n/a',
-    homeworld: `${baseUrl}/planets/1`,
-    films: [`${baseUrl}/films/1`, `${baseUrl}/films/4`],
+    homeworld: '1',
+    films: ['1', '4'],
     species: [],
     vehicles: [],
     starships: [],
@@ -62,13 +64,14 @@ describe('CharacterDatapad', () => {
 
   const mockFilms: Film[] = [
     {
+      id: '1',
       title: 'A New Hope',
       episode_id: 4,
       opening_crawl: 'It is a period of civil war...',
       director: 'George Lucas',
       producer: 'Gary Kurtz',
       release_date: '1977-05-25',
-      characters: [`${baseUrl}/people/1`, `${baseUrl}/people/2`],
+      characters: ['1', '2'],
       planets: [],
       starships: [],
       vehicles: [],
@@ -78,13 +81,14 @@ describe('CharacterDatapad', () => {
       url: `${baseUrl}/films/1`,
     },
     {
+      id: '4',
       title: 'The Phantom Menace',
       episode_id: 1,
       opening_crawl: 'Turmoil has engulfed the Galactic Republic...',
       director: 'George Lucas',
       producer: 'Rick McCallum',
       release_date: '1999-05-19',
-      characters: [`${baseUrl}/people/2`],
+      characters: ['2'],
       planets: [],
       starships: [],
       vehicles: [],
@@ -96,6 +100,7 @@ describe('CharacterDatapad', () => {
   ];
 
   const mockTatooine: Planet = {
+    id: '1',
     name: 'Tatooine',
     rotation_period: '23',
     orbital_period: '304',
@@ -113,6 +118,7 @@ describe('CharacterDatapad', () => {
   };
 
   const mockHuman: Species = {
+    id: '1',
     name: 'Human',
     classification: 'mammal',
     designation: 'sentient',
@@ -121,7 +127,7 @@ describe('CharacterDatapad', () => {
     hair_colors: 'blonde, brown, black, red',
     eye_colors: 'brown, blue, green',
     average_lifespan: '120',
-    homeworld: `${baseUrl}/planets/9`,
+    homeworld: '9',
     language: 'Galactic Basic',
     people: [],
     films: [],
@@ -131,6 +137,7 @@ describe('CharacterDatapad', () => {
   };
 
   const mockXWing: Starship = {
+    id: '12',
     name: 'X-wing',
     model: 'T-65 X-wing',
     manufacturer: 'Incom Corporation',
@@ -144,7 +151,7 @@ describe('CharacterDatapad', () => {
     hyperdrive_rating: '1.0',
     MGLT: '100',
     starship_class: 'Starfighter',
-    pilots: [`${baseUrl}/people/1`],
+    pilots: ['1'],
     films: [],
     created: '',
     edited: '',
@@ -152,6 +159,7 @@ describe('CharacterDatapad', () => {
   };
 
   const mockSnowspeeder: Vehicle = {
+    id: '14',
     name: 'Snowspeeder',
     model: 't-47 airspeeder',
     manufacturer: 'Incom corporation',
@@ -163,7 +171,7 @@ describe('CharacterDatapad', () => {
     cargo_capacity: '10',
     consumables: 'none',
     vehicle_class: 'airspeeder',
-    pilots: [`${baseUrl}/people/1`],
+    pilots: ['1'],
     films: [],
     created: '',
     edited: '',
@@ -200,9 +208,14 @@ describe('CharacterDatapad', () => {
     fixture.detectChanges();
   });
 
-  it('should load characters sorted alphabetically and select Luke Skywalker by default', () => {
+  it('should load characters sorted alphabetically, extract related IDs on retrieval, and select Luke Skywalker by default', () => {
     expect(component.sortedCharacters().map((p) => p.name)).toEqual(['C-3PO', 'Luke Skywalker']);
-    expect(component.selectedCharacter()?.name).toBe('Luke Skywalker');
+    const selected = component.selectedCharacter();
+    expect(selected?.name).toBe('Luke Skywalker');
+    expect(selected?.homeworld).toBe('1');
+    expect(selected?.species).toEqual(['1']);
+    expect(selected?.starships).toEqual(['12']);
+    expect(selected?.vehicles).toEqual(['14']);
 
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelector('.character-name')?.textContent).toContain('Luke Skywalker');

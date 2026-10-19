@@ -1,14 +1,15 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { Observable, shareReplay, tap } from 'rxjs';
+import { map, Observable, shareReplay, tap } from 'rxjs';
 import {
+  Character,
   Film,
-  Person,
   Planet,
   Species,
   Starship,
   SwapiCategory,
   SwapiCategoryMap,
+  SwapiEntity,
   Vehicle,
 } from '../models/swapi.models';
 
@@ -33,7 +34,7 @@ export class SwapiService {
     return this.getCategoryList('films');
   }
 
-  getPeople(): Observable<Person[]> {
+  getPeople(): Observable<Character[]> {
     return this.getCategoryList('people');
   }
 
@@ -60,18 +61,111 @@ export class SwapiService {
     this.urlCache.clear();
   }
 
+  private normalizeEntity(category: SwapiCategory, entity: SwapiEntity): SwapiEntity {
+    switch (category) {
+      case 'films':
+        return this.normalizeFilm(entity as Film);
+      case 'people':
+        return this.normalizeCharacter(entity as Character);
+      case 'planets':
+        return this.normalizePlanet(entity as Planet);
+      case 'species':
+        return this.normalizeSpecies(entity as Species);
+      case 'vehicles':
+        return this.normalizeVehicle(entity as Vehicle);
+      case 'starships':
+        return this.normalizeStarship(entity as Starship);
+    }
+  }
+
+  private normalizeFilm(film: Film): Film {
+    return {
+      ...film,
+      id: this.extractSwapiId(film.url),
+      characters: film.characters.map((url) => this.extractSwapiId(url)),
+      planets: film.planets.map((url) => this.extractSwapiId(url)),
+      starships: film.starships.map((url) => this.extractSwapiId(url)),
+      vehicles: film.vehicles.map((url) => this.extractSwapiId(url)),
+      species: film.species.map((url) => this.extractSwapiId(url)),
+    };
+  }
+
+  private normalizeCharacter(character: Character): Character {
+    return {
+      ...character,
+      id: this.extractSwapiId(character.url),
+      homeworld: character.homeworld ? this.extractSwapiId(character.homeworld) : '',
+      films: character.films.map((url) => this.extractSwapiId(url)),
+      species: character.species.map((url) => this.extractSwapiId(url)),
+      starships: character.starships.map((url) => this.extractSwapiId(url)),
+      vehicles: character.vehicles.map((url) => this.extractSwapiId(url)),
+    };
+  }
+
+  private normalizePlanet(planet: Planet): Planet {
+    return {
+      ...planet,
+      id: this.extractSwapiId(planet.url),
+      residents: planet.residents.map((url) => this.extractSwapiId(url)),
+      films: planet.films.map((url) => this.extractSwapiId(url)),
+    };
+  }
+
+  private normalizeSpecies(species: Species): Species {
+    return {
+      ...species,
+      id: this.extractSwapiId(species.url),
+      homeworld: species.homeworld ? this.extractSwapiId(species.homeworld) : null,
+      people: species.people.map((url) => this.extractSwapiId(url)),
+      films: species.films.map((url) => this.extractSwapiId(url)),
+    };
+  }
+
+  private normalizeVehicle(vehicle: Vehicle): Vehicle {
+    return {
+      ...vehicle,
+      id: this.extractSwapiId(vehicle.url),
+      pilots: vehicle.pilots.map((url) => this.extractSwapiId(url)),
+      films: vehicle.films.map((url) => this.extractSwapiId(url)),
+    };
+  }
+
+  private normalizeStarship(starship: Starship): Starship {
+    return {
+      ...starship,
+      id: this.extractSwapiId(starship.url),
+      pilots: starship.pilots.map((url) => this.extractSwapiId(url)),
+      films: starship.films.map((url) => this.extractSwapiId(url)),
+    };
+  }
+
+  private extractSwapiId(url: string): string {
+    const parts = url.replace(/\/+$/, '').split('/');
+    return parts[parts.length - 1] ?? '';
+  }
+
   /**
-   * Fetches a SWAPI entity by its full URL with in-memory caching.
+   * Fetches a SWAPI entity or list by its full URL, normalizes it, and caches the normalized result.
    * Evicts the cache entry if the request errors so retries can succeed.
    */
-  private getByUrl<T>(url: string): Observable<T> {
+  private getByUrl<T extends SwapiEntity | SwapiEntity[]>(url: string): Observable<T> {
     const normalizedUrl = url.trim();
     const cached = this.urlCache.get(normalizedUrl) as Observable<T> | undefined;
     if (cached) {
       return cached;
     }
 
+    const category = normalizedUrl
+      .slice(this.baseUrl.length + 1)
+      .split('/')[0] as SwapiCategory;
+
     const request$ = this.http.get<T>(normalizedUrl).pipe(
+      map(
+        (data) =>
+          (Array.isArray(data)
+            ? data.map((item) => this.normalizeEntity(category, item))
+            : this.normalizeEntity(category, data)) as T,
+      ),
       tap({
         error: () => this.urlCache.delete(normalizedUrl),
       }),

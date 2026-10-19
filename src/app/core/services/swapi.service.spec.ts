@@ -1,7 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { Film, Person, Planet, Species, Starship, Vehicle } from '../models/swapi.models';
+import { Film, Character, Planet, Species, Starship, Vehicle } from '../models/swapi.models';
 import { SwapiService } from './swapi.service';
 
 describe('SwapiService', () => {
@@ -9,7 +9,7 @@ describe('SwapiService', () => {
   let httpMock: HttpTestingController;
   const baseUrl = 'https://swapi.info/api';
 
-  const mockFilm: Film = {
+  const rawFilm = {
     title: 'A New Hope',
     episode_id: 4,
     opening_crawl: 'It is a period of civil war...',
@@ -26,7 +26,17 @@ describe('SwapiService', () => {
     url: `${baseUrl}/films/1`,
   };
 
-  const mockPerson: Person = {
+  const expectedFilm: Film = {
+    ...rawFilm,
+    id: '1',
+    characters: ['1'],
+    planets: ['1'],
+    starships: ['2'],
+    vehicles: ['4'],
+    species: ['1'],
+  };
+
+  const rawCharacter = {
     name: 'Luke Skywalker',
     height: '172',
     mass: '77',
@@ -45,7 +55,17 @@ describe('SwapiService', () => {
     url: `${baseUrl}/people/1`,
   };
 
-  const mockPlanet: Planet = {
+  const expectedCharacter: Character = {
+    ...rawCharacter,
+    id: '1',
+    homeworld: '1',
+    films: ['1'],
+    species: [],
+    vehicles: ['14'],
+    starships: ['12'],
+  };
+
+  const rawPlanet = {
     name: 'Tatooine',
     rotation_period: '23',
     orbital_period: '304',
@@ -62,7 +82,14 @@ describe('SwapiService', () => {
     url: `${baseUrl}/planets/1`,
   };
 
-  const mockSpecies: Species = {
+  const expectedPlanet: Planet = {
+    ...rawPlanet,
+    id: '1',
+    residents: ['1'],
+    films: ['1'],
+  };
+
+  const rawSpecies = {
     name: 'Human',
     classification: 'mammal',
     designation: 'sentient',
@@ -80,7 +107,15 @@ describe('SwapiService', () => {
     url: `${baseUrl}/species/1`,
   };
 
-  const mockVehicle: Vehicle = {
+  const expectedSpecies: Species = {
+    ...rawSpecies,
+    id: '1',
+    homeworld: '9',
+    people: ['66'],
+    films: ['1'],
+  };
+
+  const rawVehicle = {
     name: 'Sand Crawler',
     model: 'Digger Crawler',
     manufacturer: 'Corellia Mining Corporation',
@@ -92,14 +127,21 @@ describe('SwapiService', () => {
     cargo_capacity: '50000',
     consumables: '2 months',
     vehicle_class: 'wheeled',
-    pilots: [],
+    pilots: [`${baseUrl}/people/1`],
     films: [`${baseUrl}/films/1`],
     created: '2014-12-10T15:36:25.724000Z',
     edited: '2014-12-20T21:30:21.661000Z',
     url: `${baseUrl}/vehicles/4`,
   };
 
-  const mockStarship: Starship = {
+  const expectedVehicle: Vehicle = {
+    ...rawVehicle,
+    id: '4',
+    pilots: ['1'],
+    films: ['1'],
+  };
+
+  const rawStarship = {
     name: 'CR90 corvette',
     model: 'CR90 corvette',
     manufacturer: 'Corellian Engineering Corporation',
@@ -113,11 +155,18 @@ describe('SwapiService', () => {
     hyperdrive_rating: '2.0',
     MGLT: '60',
     starship_class: 'corvette',
-    pilots: [],
+    pilots: [`${baseUrl}/people/1`],
     films: [`${baseUrl}/films/1`],
     created: '2014-12-10T14:20:33.369000Z',
     edited: '2014-12-20T21:23:49.867000Z',
     url: `${baseUrl}/starships/2`,
+  };
+
+  const expectedStarship: Starship = {
+    ...rawStarship,
+    id: '2',
+    pilots: ['1'],
+    films: ['1'],
   };
 
   beforeEach(() => {
@@ -138,8 +187,8 @@ describe('SwapiService', () => {
     expect(service.baseUrl).toBe('https://swapi.info/api');
   });
 
-  it('getCategoryList() should call GET https://swapi.info/api/{category} and return category items', () => {
-    let actual: Person[] | undefined;
+  it('getCategoryList() should call GET https://swapi.info/api/{category} and return normalized category items', () => {
+    let actual: Character[] | undefined;
 
     service.getCategoryList('people').subscribe((res) => {
       actual = res;
@@ -147,12 +196,12 @@ describe('SwapiService', () => {
 
     const req = httpMock.expectOne(`${baseUrl}/people`);
     expect(req.request.method).toBe('GET');
-    req.flush([mockPerson]);
+    req.flush([rawCharacter]);
 
-    expect(actual).toEqual([mockPerson]);
+    expect(actual).toEqual([expectedCharacter]);
   });
 
-  it('getCategoryItem() should call GET https://swapi.info/api/{category}/{id} and return the expected item', () => {
+  it('getCategoryItem() should call GET https://swapi.info/api/{category}/{id} and return the normalized item', () => {
     let actual: Planet | undefined;
 
     service.getCategoryItem('planets', 1).subscribe((res) => {
@@ -161,12 +210,12 @@ describe('SwapiService', () => {
 
     const req = httpMock.expectOne(`${baseUrl}/planets/1`);
     expect(req.request.method).toBe('GET');
-    req.flush(mockPlanet);
+    req.flush(rawPlanet);
 
-    expect(actual).toEqual(mockPlanet);
+    expect(actual).toEqual(expectedPlanet);
   });
 
-  it('getFilms() should call GET https://swapi.info/api/films and return Film[]', () => {
+  it('getFilms() should call GET https://swapi.info/api/films and return Film[] with normalized IDs', () => {
     let actual: Film[] | undefined;
 
     service.getFilms().subscribe((res) => {
@@ -175,13 +224,13 @@ describe('SwapiService', () => {
 
     const req = httpMock.expectOne(`${baseUrl}/films`);
     expect(req.request.method).toBe('GET');
-    req.flush([mockFilm]);
+    req.flush([rawFilm]);
 
-    expect(actual).toEqual([mockFilm]);
+    expect(actual).toEqual([expectedFilm]);
   });
 
-  it('getPeople() should call GET https://swapi.info/api/people and return Person[]', () => {
-    let actual: Person[] | undefined;
+  it('getPeople() should call GET https://swapi.info/api/people and return Character[] with normalized IDs', () => {
+    let actual: Character[] | undefined;
 
     service.getPeople().subscribe((res) => {
       actual = res;
@@ -189,12 +238,12 @@ describe('SwapiService', () => {
 
     const req = httpMock.expectOne(`${baseUrl}/people`);
     expect(req.request.method).toBe('GET');
-    req.flush([mockPerson]);
+    req.flush([rawCharacter]);
 
-    expect(actual).toEqual([mockPerson]);
+    expect(actual).toEqual([expectedCharacter]);
   });
 
-  it('getPlanets() should call GET https://swapi.info/api/planets and return Planet[]', () => {
+  it('getPlanets() should call GET https://swapi.info/api/planets and return Planet[] with normalized IDs', () => {
     let actual: Planet[] | undefined;
 
     service.getPlanets().subscribe((res) => {
@@ -203,12 +252,12 @@ describe('SwapiService', () => {
 
     const req = httpMock.expectOne(`${baseUrl}/planets`);
     expect(req.request.method).toBe('GET');
-    req.flush([mockPlanet]);
+    req.flush([rawPlanet]);
 
-    expect(actual).toEqual([mockPlanet]);
+    expect(actual).toEqual([expectedPlanet]);
   });
 
-  it('getSpecies() should call GET https://swapi.info/api/species and return Species[]', () => {
+  it('getSpecies() should call GET https://swapi.info/api/species and return Species[] with normalized IDs', () => {
     let actual: Species[] | undefined;
 
     service.getSpecies().subscribe((res) => {
@@ -217,12 +266,12 @@ describe('SwapiService', () => {
 
     const req = httpMock.expectOne(`${baseUrl}/species`);
     expect(req.request.method).toBe('GET');
-    req.flush([mockSpecies]);
+    req.flush([rawSpecies]);
 
-    expect(actual).toEqual([mockSpecies]);
+    expect(actual).toEqual([expectedSpecies]);
   });
 
-  it('getVehicles() should call GET https://swapi.info/api/vehicles and return Vehicle[]', () => {
+  it('getVehicles() should call GET https://swapi.info/api/vehicles and return Vehicle[] with normalized IDs', () => {
     let actual: Vehicle[] | undefined;
 
     service.getVehicles().subscribe((res) => {
@@ -231,12 +280,12 @@ describe('SwapiService', () => {
 
     const req = httpMock.expectOne(`${baseUrl}/vehicles`);
     expect(req.request.method).toBe('GET');
-    req.flush([mockVehicle]);
+    req.flush([rawVehicle]);
 
-    expect(actual).toEqual([mockVehicle]);
+    expect(actual).toEqual([expectedVehicle]);
   });
 
-  it('getStarships() should call GET https://swapi.info/api/starships and return Starship[]', () => {
+  it('getStarships() should call GET https://swapi.info/api/starships and return Starship[] with normalized IDs', () => {
     let actual: Starship[] | undefined;
 
     service.getStarships().subscribe((res) => {
@@ -245,9 +294,9 @@ describe('SwapiService', () => {
 
     const req = httpMock.expectOne(`${baseUrl}/starships`);
     expect(req.request.method).toBe('GET');
-    req.flush([mockStarship]);
+    req.flush([rawStarship]);
 
-    expect(actual).toEqual([mockStarship]);
+    expect(actual).toEqual([expectedStarship]);
   });
 
   it('getCategoryList() and getCategoryItem() should cache responses via urlCache and avoid duplicate HTTP requests', () => {
@@ -260,15 +309,15 @@ describe('SwapiService', () => {
 
     const itemReq = httpMock.expectOne(`${baseUrl}/planets/1`);
     expect(itemReq.request.method).toBe('GET');
-    itemReq.flush(mockPlanet);
+    itemReq.flush(rawPlanet);
 
     service.getCategoryItem('planets', 1).subscribe((res) => {
       cachedPlanet = res;
     });
 
     httpMock.expectNone(`${baseUrl}/planets/1`);
-    expect(firstPlanet).toEqual(mockPlanet);
-    expect(cachedPlanet).toEqual(mockPlanet);
+    expect(firstPlanet).toEqual(expectedPlanet);
+    expect(cachedPlanet).toEqual(expectedPlanet);
 
     let firstFilms: Film[] | undefined;
     let cachedFilms: Film[] | undefined;
@@ -279,26 +328,26 @@ describe('SwapiService', () => {
 
     const listReq = httpMock.expectOne(`${baseUrl}/films`);
     expect(listReq.request.method).toBe('GET');
-    listReq.flush([mockFilm]);
+    listReq.flush([rawFilm]);
 
     service.getFilms().subscribe((res) => {
       cachedFilms = res;
     });
 
     httpMock.expectNone(`${baseUrl}/films`);
-    expect(firstFilms).toEqual([mockFilm]);
-    expect(cachedFilms).toEqual([mockFilm]);
+    expect(firstFilms).toEqual([expectedFilm]);
+    expect(cachedFilms).toEqual([expectedFilm]);
   });
 
   it('clearCache() should clear cached URL responses so subsequent calls issue a fresh GET request', () => {
     service.getCategoryItem('planets', 1).subscribe();
-    httpMock.expectOne(`${baseUrl}/planets/1`).flush(mockPlanet);
+    httpMock.expectOne(`${baseUrl}/planets/1`).flush(rawPlanet);
 
     service.clearCache();
 
     service.getCategoryItem('planets', 1).subscribe();
     const freshReq = httpMock.expectOne(`${baseUrl}/planets/1`);
     expect(freshReq.request.method).toBe('GET');
-    freshReq.flush(mockPlanet);
+    freshReq.flush(rawPlanet);
   });
 });

@@ -7,6 +7,7 @@ export type SwapiCategory =
   | 'starships';
 
 export interface BaseSwapiResource {
+  id: string;
   created: string;
   edited: string;
   url: string;
@@ -26,7 +27,7 @@ export interface Film extends BaseSwapiResource {
   species: string[];
 }
 
-export interface Person extends BaseSwapiResource {
+export interface Character extends BaseSwapiResource {
   name: string;
   height: string;
   mass: string;
@@ -107,7 +108,7 @@ export interface Starship extends BaseSwapiResource {
 
 export interface SwapiCategoryMap {
   films: Film;
-  people: Person;
+  people: Character;
   planets: Planet;
   species: Species;
   vehicles: Vehicle;
@@ -115,8 +116,3 @@ export interface SwapiCategoryMap {
 }
 
 export type SwapiEntity = SwapiCategoryMap[SwapiCategory];
-
-export function extractSwapiId(url: string): string {
-  const parts = url.replace(/\/+$/, '').split('/');
-  return parts[parts.length - 1] ?? '';
-}
