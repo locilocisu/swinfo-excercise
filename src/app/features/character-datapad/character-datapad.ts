@@ -11,8 +11,9 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTableModule } from '@angular/material/table';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { Subscription } from 'rxjs';
+import { forkJoin, Subscription } from 'rxjs';
 import {
+  extractSwapiId,
   Film,
   Person,
   Planet,
@@ -243,12 +244,14 @@ export class CharacterDatapad implements OnInit {
 
   private loadSpeciesForCharacter(character: Person): void {
     this.speciesError.set(null);
-    const speciesUrls = character.species.length
-      ? character.species
-      : [`${this.swapiService.baseUrl}/species/1`];
+    const speciesIds = character.species.length
+      ? character.species.map((url) => extractSwapiId(url))
+      : ['1']; //if the character has no species, default to "Human" (species ID 1)
 
     this.speciesLoading.set(true);
-    const sub = this.swapiService.getManyByUrls<Species>(speciesUrls).subscribe({
+    const sub = forkJoin(
+      speciesIds.map((id) => this.swapiService.getCategoryItem('species', id)),
+    ).subscribe({
       next: (species) => {
         this.speciesList.set(species);
         this.speciesLoading.set(false);
@@ -270,8 +273,9 @@ export class CharacterDatapad implements OnInit {
       return;
     }
 
+    const planetId = extractSwapiId(character.homeworld);
     this.homeworldLoading.set(true);
-    const sub = this.swapiService.getByUrl<Planet>(character.homeworld).subscribe({
+    const sub = this.swapiService.getCategoryItem('planets', planetId).subscribe({
       next: (planet) => {
         this.homeworld.set(planet);
         this.homeworldLoading.set(false);
@@ -294,7 +298,11 @@ export class CharacterDatapad implements OnInit {
     }
 
     this.starshipsLoading.set(true);
-    const sub = this.swapiService.getManyByUrls<Starship>(character.starships).subscribe({
+    const sub = forkJoin(
+      character.starships.map((url) =>
+        this.swapiService.getCategoryItem('starships', extractSwapiId(url)),
+      ),
+    ).subscribe({
       next: (starships) => {
         this.starshipsList.set(starships);
         this.starshipsLoading.set(false);
@@ -317,7 +325,11 @@ export class CharacterDatapad implements OnInit {
     }
 
     this.vehiclesLoading.set(true);
-    const sub = this.swapiService.getManyByUrls<Vehicle>(character.vehicles).subscribe({
+    const sub = forkJoin(
+      character.vehicles.map((url) =>
+        this.swapiService.getCategoryItem('vehicles', extractSwapiId(url)),
+      ),
+    ).subscribe({
       next: (vehicles) => {
         this.vehiclesList.set(vehicles);
         this.vehiclesLoading.set(false);

@@ -6,15 +6,6 @@ export type SwapiCategory =
   | 'vehicles'
   | 'starships';
 
-export interface SwapiRoot {
-  films: string;
-  people: string;
-  planets: string;
-  species: string;
-  vehicles: string;
-  starships: string;
-}
-
 export interface BaseSwapiResource {
   created: string;
   edited: string;

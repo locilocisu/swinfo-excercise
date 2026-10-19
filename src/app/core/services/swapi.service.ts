@@ -1,6 +1,6 @@
-import { HttpClient, httpResource, HttpResourceRef } from '@angular/common/http';
-import { inject, Injectable, Signal } from '@angular/core';
-import { forkJoin, Observable, of, shareReplay, tap } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { inject, Injectable } from '@angular/core';
+import { Observable, shareReplay, tap } from 'rxjs';
 import {
   Film,
   Person,
@@ -9,7 +9,6 @@ import {
   Starship,
   SwapiCategory,
   SwapiCategoryMap,
-  SwapiRoot,
   Vehicle,
 } from '../models/swapi.models';
 
@@ -19,19 +18,15 @@ export class SwapiService {
   private readonly urlCache = new Map<string, Observable<unknown>>();
   readonly baseUrl = 'https://swapi.info/api';
 
-  getRoot(): Observable<SwapiRoot> {
-    return this.http.get<SwapiRoot>(this.baseUrl);
-  }
-
   getCategoryList<K extends SwapiCategory>(category: K): Observable<SwapiCategoryMap[K][]> {
-    return this.http.get<SwapiCategoryMap[K][]>(`${this.baseUrl}/${category}`);
+    return this.getByUrl<SwapiCategoryMap[K][]>(`${this.baseUrl}/${category}`);
   }
 
   getCategoryItem<K extends SwapiCategory>(
     category: K,
     id: string | number,
   ): Observable<SwapiCategoryMap[K]> {
-    return this.http.get<SwapiCategoryMap[K]>(`${this.baseUrl}/${category}/${id}`);
+    return this.getByUrl<SwapiCategoryMap[K]>(`${this.baseUrl}/${category}/${id}`);
   }
 
   getFilms(): Observable<Film[]> {
@@ -59,10 +54,17 @@ export class SwapiService {
   }
 
   /**
+   * Clears the in-memory URL cache.
+   */
+  clearCache(): void {
+    this.urlCache.clear();
+  }
+
+  /**
    * Fetches a SWAPI entity by its full URL with in-memory caching.
    * Evicts the cache entry if the request errors so retries can succeed.
    */
-  getByUrl<T>(url: string): Observable<T> {
+  private getByUrl<T>(url: string): Observable<T> {
     const normalizedUrl = url.trim();
     const cached = this.urlCache.get(normalizedUrl) as Observable<T> | undefined;
     if (cached) {
@@ -78,31 +80,5 @@ export class SwapiService {
 
     this.urlCache.set(normalizedUrl, request$);
     return request$;
-  }
-
-  /**
-   * Fetches multiple SWAPI entities in parallel from an array of resource URLs.
-   */
-  getManyByUrls<T>(urls: readonly string[]): Observable<T[]> {
-    if (!urls.length) {
-      return of([]);
-    }
-    return forkJoin(urls.map((url) => this.getByUrl<T>(url)));
-  }
-
-  /**
-   * Clears the in-memory URL cache.
-   */
-  clearCache(): void {
-    this.urlCache.clear();
-  }
-
-  /**
-   * Signal-based reactive resource loader for any SWAPI category list.
-   */
-  createCategoryResource<K extends SwapiCategory>(
-    category: Signal<K>,
-  ): HttpResourceRef<SwapiCategoryMap[K][] | undefined> {
-    return httpResource<SwapiCategoryMap[K][]>(() => `${this.baseUrl}/${category()}`);
   }
 }

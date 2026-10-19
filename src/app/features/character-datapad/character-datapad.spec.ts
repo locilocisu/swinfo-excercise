@@ -15,11 +15,9 @@ describe('CharacterDatapad', () => {
   let fixture: ComponentFixture<CharacterDatapad>;
   let component: CharacterDatapad;
   let swapiServiceMock: {
-    baseUrl: string;
     getPeople: ReturnType<typeof vi.fn>;
     getFilms: ReturnType<typeof vi.fn>;
-    getByUrl: ReturnType<typeof vi.fn>;
-    getManyByUrls: ReturnType<typeof vi.fn>;
+    getCategoryItem: ReturnType<typeof vi.fn>;
   };
 
   const baseUrl = 'https://swapi.info/api';
@@ -174,21 +172,21 @@ describe('CharacterDatapad', () => {
 
   beforeEach(async () => {
     swapiServiceMock = {
-      baseUrl,
       getPeople: vi.fn().mockReturnValue(of([mockLuke, mockC3po])),
       getFilms: vi.fn().mockReturnValue(of(mockFilms)),
-      getByUrl: vi.fn().mockReturnValue(of(mockTatooine)),
-      getManyByUrls: vi.fn().mockImplementation((urls: string[]) => {
-        if (urls[0]?.includes('/species/')) {
-          return of([mockHuman]);
+      getCategoryItem: vi.fn().mockImplementation((category: string) => {
+        switch (category) {
+          case 'planets':
+            return of(mockTatooine);
+          case 'species':
+            return of(mockHuman);
+          case 'starships':
+            return of(mockXWing);
+          case 'vehicles':
+            return of(mockSnowspeeder);
+          default:
+            return of(null);
         }
-        if (urls[0]?.includes('/starships/')) {
-          return of([mockXWing]);
-        }
-        if (urls[0]?.includes('/vehicles/')) {
-          return of([mockSnowspeeder]);
-        }
-        return of([]);
       }),
     };
 
@@ -250,12 +248,12 @@ describe('CharacterDatapad', () => {
   });
 
   it('should treat a character with an empty species array as Human (species/1) and show empty states for starships/vehicles', () => {
-    swapiServiceMock.getManyByUrls.mockClear();
+    swapiServiceMock.getCategoryItem.mockClear();
     component.selectCharacter(mockC3po);
     fixture.detectChanges();
 
     expect(component.selectedCharacter()?.name).toBe('C-3PO');
-    expect(swapiServiceMock.getManyByUrls).toHaveBeenCalledWith([`${baseUrl}/species/1`]);
+    expect(swapiServiceMock.getCategoryItem).toHaveBeenCalledWith('species', '1');
     expect(component.speciesList()).toEqual([mockHuman]);
     expect(component.starshipsList()).toEqual([]);
     expect(component.vehiclesList()).toEqual([]);
@@ -268,12 +266,15 @@ describe('CharacterDatapad', () => {
   });
 
   it('should not show Aurebesh for homeworld planet name when the planet name is unknown', () => {
-    swapiServiceMock.getByUrl.mockReturnValueOnce(
-      of({
-        ...mockTatooine,
-        name: 'unknown',
-      }),
-    );
+    swapiServiceMock.getCategoryItem.mockImplementation((category: string) => {
+      if (category === 'planets') {
+        return of({
+          ...mockTatooine,
+          name: 'unknown',
+        });
+      }
+      return of(mockHuman);
+    });
 
     component.retrySelectedCharacterDetails();
     fixture.detectChanges();

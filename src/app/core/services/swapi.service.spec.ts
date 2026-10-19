@@ -1,32 +1,13 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { ApplicationRef, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import {
-  Film,
-  Person,
-  Planet,
-  Species,
-  Starship,
-  SwapiCategory,
-  SwapiRoot,
-  Vehicle,
-} from '../models/swapi.models';
+import { Film, Person, Planet, Species, Starship, Vehicle } from '../models/swapi.models';
 import { SwapiService } from './swapi.service';
 
 describe('SwapiService', () => {
   let service: SwapiService;
   let httpMock: HttpTestingController;
   const baseUrl = 'https://swapi.info/api';
-
-  const mockRoot: SwapiRoot = {
-    films: `${baseUrl}/films`,
-    people: `${baseUrl}/people`,
-    planets: `${baseUrl}/planets`,
-    species: `${baseUrl}/species`,
-    vehicles: `${baseUrl}/vehicles`,
-    starships: `${baseUrl}/starships`,
-  };
 
   const mockFilm: Film = {
     title: 'A New Hope',
@@ -157,20 +138,6 @@ describe('SwapiService', () => {
     expect(service.baseUrl).toBe('https://swapi.info/api');
   });
 
-  it('getRoot() should call GET https://swapi.info/api and return SwapiRoot', () => {
-    let actual: SwapiRoot | undefined;
-
-    service.getRoot().subscribe((res) => {
-      actual = res;
-    });
-
-    const req = httpMock.expectOne(`${baseUrl}`);
-    expect(req.request.method).toBe('GET');
-    req.flush(mockRoot);
-
-    expect(actual).toEqual(mockRoot);
-  });
-
   it('getCategoryList() should call GET https://swapi.info/api/{category} and return category items', () => {
     let actual: Person[] | undefined;
 
@@ -283,73 +250,55 @@ describe('SwapiService', () => {
     expect(actual).toEqual([mockStarship]);
   });
 
-  it('createCategoryResource() should reactively fetch the active category endpoint and return the expected objects', async () => {
-    const appRef = TestBed.inject(ApplicationRef);
-    const categorySignal = signal<SwapiCategory>('films');
+  it('getCategoryList() and getCategoryItem() should cache responses via urlCache and avoid duplicate HTTP requests', () => {
+    let firstPlanet: Planet | undefined;
+    let cachedPlanet: Planet | undefined;
 
-    const resource = TestBed.runInInjectionContext(() =>
-      service.createCategoryResource(categorySignal),
-    );
+    service.getCategoryItem('planets', 1).subscribe((res) => {
+      firstPlanet = res;
+    });
 
-    TestBed.tick();
+    const itemReq = httpMock.expectOne(`${baseUrl}/planets/1`);
+    expect(itemReq.request.method).toBe('GET');
+    itemReq.flush(mockPlanet);
 
-    const filmsReq = httpMock.expectOne(`${baseUrl}/films`);
-    expect(filmsReq.request.method).toBe('GET');
-    filmsReq.flush([mockFilm]);
+    service.getCategoryItem('planets', 1).subscribe((res) => {
+      cachedPlanet = res;
+    });
 
-    await appRef.whenStable();
-    expect(resource.value()).toEqual([mockFilm]);
+    httpMock.expectNone(`${baseUrl}/planets/1`);
+    expect(firstPlanet).toEqual(mockPlanet);
+    expect(cachedPlanet).toEqual(mockPlanet);
 
-    categorySignal.set('starships');
-    TestBed.tick();
+    let firstFilms: Film[] | undefined;
+    let cachedFilms: Film[] | undefined;
 
-    const starshipsReq = httpMock.expectOne(`${baseUrl}/starships`);
-    expect(starshipsReq.request.method).toBe('GET');
-    starshipsReq.flush([mockStarship]);
+    service.getCategoryList('films').subscribe((res) => {
+      firstFilms = res;
+    });
 
-    await appRef.whenStable();
-    expect(resource.value()).toEqual([mockStarship]);
+    const listReq = httpMock.expectOne(`${baseUrl}/films`);
+    expect(listReq.request.method).toBe('GET');
+    listReq.flush([mockFilm]);
+
+    service.getFilms().subscribe((res) => {
+      cachedFilms = res;
+    });
+
+    httpMock.expectNone(`${baseUrl}/films`);
+    expect(firstFilms).toEqual([mockFilm]);
+    expect(cachedFilms).toEqual([mockFilm]);
   });
 
-  it('getByUrl() should call GET on the exact URL, return the expected entity, and cache subsequent calls', () => {
-    const url = `${baseUrl}/planets/1`;
-    let firstResult: Planet | undefined;
-    let secondResult: Planet | undefined;
+  it('clearCache() should clear cached URL responses so subsequent calls issue a fresh GET request', () => {
+    service.getCategoryItem('planets', 1).subscribe();
+    httpMock.expectOne(`${baseUrl}/planets/1`).flush(mockPlanet);
 
-    service.getByUrl<Planet>(url).subscribe((res) => {
-      firstResult = res;
-    });
+    service.clearCache();
 
-    const req = httpMock.expectOne(url);
-    expect(req.request.method).toBe('GET');
-    req.flush(mockPlanet);
-
-    service.getByUrl<Planet>(url).subscribe((res) => {
-      secondResult = res;
-    });
-
-    // Cached call should not trigger another HTTP request
-    httpMock.expectNone(url);
-    expect(firstResult).toEqual(mockPlanet);
-    expect(secondResult).toEqual(mockPlanet);
-  });
-
-  it('getManyByUrls() should fetch all URLs in parallel or return [] when given an empty array', () => {
-    let emptyResult: Starship[] | undefined;
-    service.getManyByUrls<Starship>([]).subscribe((res) => {
-      emptyResult = res;
-    });
-    expect(emptyResult).toEqual([]);
-
-    let populatedResult: Starship[] | undefined;
-    service.getManyByUrls<Starship>([`${baseUrl}/starships/2`]).subscribe((res) => {
-      populatedResult = res;
-    });
-
-    const req = httpMock.expectOne(`${baseUrl}/starships/2`);
-    expect(req.request.method).toBe('GET');
-    req.flush(mockStarship);
-
-    expect(populatedResult).toEqual([mockStarship]);
+    service.getCategoryItem('planets', 1).subscribe();
+    const freshReq = httpMock.expectOne(`${baseUrl}/planets/1`);
+    expect(freshReq.request.method).toBe('GET');
+    freshReq.flush(mockPlanet);
   });
 });
