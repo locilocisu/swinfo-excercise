@@ -95,6 +95,7 @@ AI-assisted tooling was used to accelerate project scaffolding, inspect the `htt
 - Inspecting live responses from `https://swapi.info/api` to verify field types and edge cases (such as empty `species` arrays and `"unknown"`/`"n/a"` string metrics).
 - **Testing**: Running automated unit tests (`ng test --watch=false`) covering `SwapiService`, `SwapiMetricPipe`/`EpisodeRomanPipe`, and `CharacterDatapad` state transitions (loading, search filtering, empty states, and error recovery).
 - Verifying production compilation (`npm run build`) with strict TypeScript checking enabled.
+- Reviewing all AI generated code and making tweaks. For example, AI initially implemented the EpisodeRomanPipe and SwapiMetricPipe as a utility class. Author considers Angular Pipe implementation is more streamline and maintainable.
 
 ---
 
